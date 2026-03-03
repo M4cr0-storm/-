@@ -1,0 +1,60 @@
+name: Build Mac App
+
+# 触发条件：当代码推送到仓库时，或手动点击运行
+on: 
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest  # 使用 GitHub 的 macOS 环境
+
+    steps:
+    # 1. 拉取代码
+    - uses: actions/checkout@v4
+
+    # 2. 设置 Python 3.10.11 环境
+    - name: Set up Python 3.10.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10.11'
+        cache: 'pip' # 开启缓存，加快之后的构建速度
+
+    # 3. 安装依赖库
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        # 根据你的 import 安装第三方库
+        pip install pandas openpyxl
+        # tkinter, threading, os, datetime 是标准库，不需要 pip install
+
+    # 4. 执行打包 (PyInstaller)
+    - name: Build with PyInstaller
+      run: |
+        # --- 请修改这里 ---
+        # 将 main.py 换成你真正的 Python 文件名
+        # --name 后面是生成的软件名
+        # --windowed 必须加，因为你用了 tkinter 界面
+        
+        pyinstaller --name "ExcelTool" \
+        --windowed \
+        --onefile \
+        --clean \
+        --noconfirm \
+        main.py
+
+    # 5. 压缩 .app 文件 (Mac软件建议压缩后传输，否则容易丢失权限)
+    - name: Zip the App
+      run: |
+        cd dist
+        # 将 ExcelTool.app 压缩为 ExcelTool_Mac.zip
+        zip -r ExcelTool_Mac.zip ExcelTool.app
+
+    # 6. 上传结果到 GitHub 供你下载
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Mac-App-Download-Me
+        path: dist/ExcelTool_Mac.zip
+        retention-days: 5
